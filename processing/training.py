@@ -1,8 +1,7 @@
-# import pickle
+import pickle
 
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 
 from processing.plotting import plot_feature_importance
@@ -21,12 +20,14 @@ def predict_top_players(rookies=False):
 
     nba_data = pd.read_csv("./data/nba_data.csv")
 
-    # Split data into rookies and non-rookies
-    rookies = nba_data[nba_data["RK"] == 1].drop(columns=["RK"])
-    non_rookies = nba_data[nba_data["RK"] == 0].drop(columns=["RK"])
+    if rookies:
+        players = nba_data[nba_data["RK"] == 1]
+        y = players["ANBARK"]
+    else:
+        players = nba_data[nba_data["RK"] == 0]
+        y = players["ANBA"]
 
-    # Features to be used in the model based on the feature importance
-    selected_features = [
+    features = [
         "VORP",
         "WS",
         "OWS",
@@ -39,48 +40,31 @@ def predict_top_players(rookies=False):
         "WS/48",
     ]
 
-    # Or use all features
-    # selected_features = non_rookies.drop(
-    #     columns=["Player", "Pos", "ANBA", "ANBARK"]
+    # features = players.drop(
+    #     columns=["Player", "Pos", "ANBA", "ANBARK", "RK"]
     # ).columns.tolist()
 
-    y = non_rookies["ANBA"]
-    X = non_rookies[selected_features]
+    X = players[features]
     X = pd.get_dummies(X)
 
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.02, random_state=12
-    )
-
+    X_train, _, y_train, _ = train_test_split(X, y, test_size=0.02, random_state=12)
     model = RandomForestClassifier(n_estimators=200, random_state=21)
     model.fit(X_train, y_train)
 
-    # predictions = model.predict(X_test)
-    # accuracy = accuracy_score(y_test, predictions)
-    # print(f"Model Training Accuracy: {accuracy:.2f}")
+    # plot_feature_importance(model, X.columns)
 
     nba_data_2024 = pd.read_csv("./data/nba_data_2024.csv")
 
-    rookies_2024 = nba_data_2024[nba_data_2024["RK"] == 1].drop(columns=["RK"])
-    non_rookies_2024 = nba_data_2024[nba_data_2024["RK"] == 0].drop(columns=["RK"])
+    if rookies:
+        players_2024 = nba_data_2024[nba_data_2024["RK"] == 1]
+    else:
+        players_2024 = nba_data_2024[nba_data_2024["RK"] == 0]
 
-    X_2024 = non_rookies_2024[selected_features]
+    X_2024 = players_2024[features]
     X_2024 = pd.get_dummies(X_2024)
 
-    predictions_2024 = model.predict(X_2024)
-    predicted_players = non_rookies_2024[predictions_2024 == 1]["Player"].tolist()
-
-    # plot_feature_importance(model, X.columns)
-
-    # y_2024 = non_rookies_2024["ANBA"]
-    # accuracy_2024 = accuracy_score(y_2024, predictions_2024)
-    # print(f"Model Testing Accuracy: {accuracy_2024:.2f}")
-
-    # print(
-    #     f"Predicted All-NBA players: {non_rookies_2024[predictions_2024 == 1]['Player'].tolist()}"
-    # )
-    # print(f"Actual All-NBA players: {non_rookies_2024[y_2024 == 1]['Player'].tolist()}")
-    # print(f"Predicted All-NBA players count: {predictions_2024.sum()}")
+    predictions = model.predict(X_2024)
+    predicted_players = players_2024[predictions == 1]["Player"].tolist()
 
     # with open("./model.pkl", "wb") as model_file:
     #     pickle.dump(model, model_file)
